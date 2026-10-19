@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MSBY 黑色狐狼 - 核心球員能力檔案庫</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f1013;
+      --bg-card: #18191e;
+      --bg-surface: #202229;
+      --accent-gold: #f5c518;
+      --accent-gold-glow: rgba(245, 197, 24, 0.35);
+      --accent-red: #f43f5e;
+      --accent-red-glow: rgba(244, 63, 94, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-gold: rgba(245, 197, 24, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* MSBY 黑色狐狼動態網格背景 */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: 
+        radial-gradient(circle at 15% 15%, rgba(245, 197, 24, 0.09) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(245, 197, 24, 0.05) 0%, transparent 40%),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 2px, transparent 2px, transparent 12px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      padding: 24px 20px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+    }
+
+    .team-badge {
+      font-size: 0.8rem;
+      letter-spacing: 3px;
+      color: var(--accent-gold);
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border: 1px solid var(--accent-gold);
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .vs-btn {
+      background: linear-gradient(135deg, #222019 0%, #302613 100%);
+      border: 2px solid var(--accent-gold);
+      color: var(--accent-gold);
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--accent-gold-glow);
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vs-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      background: var(--accent-gold);
+      color: #000;
+      box-shadow: 0 6px 26px rgba(245, 197, 24, 0.7);
+    }
+
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* 4人首頁卡片並列 */
+    .grid-view {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      transition: opacity 0.35s ease;
+    }
+
+    .player-card {
+      background: var(--bg-card);
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent-gold);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 20px var(--accent-gold-glow);
+    }
+
+    .card-img-wrap {
+      width: 100%;
+      height: 380px;
+      background: #0d0e12;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-watermark {
+      position: absolute;
+      font-size: 8rem;
+      font-weight: 900;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.035);
+      bottom: -15px;
+      right: 6px;
+      line-height: 1;
+      user-select: none;
+      z-index: 0;
+    }
+
+    .card-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      position: relative;
+      z-index: 1;
+      transition: transform 0.4s ease;
+    }
+
+    .player-card:hover .card-photo {
+      transform: scale(1.05);
+    }
+
+    /* 角色專屬象徵符號徽章 (Symbolic Character Emblem) */
+    .symbolic-emblem-wrap {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      padding: 24px;
+      background: radial-gradient(circle at 50% 45%, rgba(245, 197, 24, 0.12) 0%, rgba(13, 14, 18, 0.95) 75%);
+      transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .player-card:hover .symbolic-emblem-wrap {
+      transform: scale(1.05);
+    }
+
+    .symbolic-emblem-svg {
+      width: 170px;
+      height: 170px;
+      filter: drop-shadow(0 0 16px var(--accent-gold-glow));
+    }
+
+    .symbol-title-tag {
+      margin-top: 14px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--accent-gold);
+      background: rgba(245, 197, 24, 0.1);
+      border: 1px solid rgba(245, 197, 24, 0.35);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+    }
+
+    .symbol-desc {
+      margin-top: 6px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+
+    .card-info {
+      padding: 18px;
+      background: linear-gradient(180deg, #18191e 0%, #121317 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .player-no {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: var(--accent-gold);
+      font-style: italic;
+    }
+
+    .player-pos-badge {
+      background: rgba(245, 197, 24, 0.15);
+      color: var(--accent-gold);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .player-name-zh {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .player-name-jp {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .skill-tag {
+      margin-top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+
+    .skill-tag span {
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    /* 單人詳情模式 (Focused View) */
+    .detail-view {
+      display: none;
+      animation: fadeIn 0.35s ease forwards;
+    }
+
+    .detail-view.active {
+      display: block;
+    }
+
+    .back-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+    }
+
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 36px;
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border-gold);
+      padding: 36px;
+      position: relative;
+    }
+
+    .detail-left {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .detail-img-box {
+      width: 100%;
+      height: 380px;
+      background: #0d0e12;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .detail-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+
+    .detail-profile-data {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .quick-selector {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .quick-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .quick-btn.active, .quick-btn:hover {
+      background: var(--accent-gold);
+      color: #000;
+      font-weight: 700;
+      border-color: var(--accent-gold);
+    }
+
+    .detail-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .radar-container {
+      position: relative;
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .stat-badges-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .stat-badge {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+
+    .stat-badge-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .stat-badge-num {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--accent-gold);
+    }
+
+    /* VS 對比模式彈窗 (VS Mode Modal) */
+    .vs-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .vs-modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .vs-card-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 980px;
+      padding: 30px;
+      position: relative;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .vs-modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.6rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .vs-modal-close:hover {
+      color: #fff;
+    }
+
+    .vs-picker-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .vs-select {
+      background: #111216;
+      border: 1px solid var(--accent-gold);
+      color: #fff;
+      padding: 9px 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .vs-select.p2 {
+      border-color: var(--accent-red);
+    }
+
+    .vs-compare-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .vs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .vs-table th, .vs-table td {
+      padding: 8px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .vs-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .p1-val { color: var(--accent-gold); font-weight: 800; font-size: 1rem; }
+    .p2-val { color: var(--accent-red); font-weight: 800; font-size: 1rem; }
+    .val-win { text-shadow: 0 0 10px currentColor; font-size: 1.1rem; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1024px) {
+      .grid-view { grid-template-columns: repeat(2, 1fr); }
+      .detail-layout { grid-template-columns: 1fr; }
+      .vs-compare-layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .grid-view { grid-template-columns: 1fr; }
+      .stat-badges-grid { grid-template-columns: repeat(3, 1fr); }
+      h1 { font-size: 1.6rem; }
+      .card-img-wrap { height: 280px; }
+      .vs-picker-bar { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="team-badge">MSBY BLACK JACKAL ・ DIVISION 1</div>
+    <h1>核心球員能力戰力室</h1>
+    <button class="vs-btn" onclick="openVsModal()">
+      <span>⚔️ 隊內紅白戰・能力交鋒 (VS MODE)</span>
+    </button>
+  </header>
+
+  <main>
+    <!-- 四位球員主首頁卡片 -->
+    <div class="grid-view" id="gridView"></div>
+
+    <!-- 單人詳情模式 -->
+    <div class="detail-view" id="detailView">
+      <button class="back-btn" onclick="closeDetail()">← 返回全員陣容</button>
+      <div class="detail-layout">
+        <!-- 左側：個人圖片與身材招式檔案 -->
+        <div class="detail-left">
+          <div class="detail-img-box" id="detailImgBox"></div>
+          <div class="detail-profile-data">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h2 id="detailName" style="font-size: 2rem; font-weight: 900;"></h2>
+              <span id="detailNoPos" style="color: var(--accent-gold); font-weight: 800; font-size: 1.15rem;"></span>
+            </div>
+            <div id="detailSize" style="color: var(--text-muted); font-size: 0.95rem;"></div>
+            <div class="skill-tag" id="detailSkill"></div>
+          </div>
+          <div style="margin-top: 10px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">快速切換隊友：</div>
+            <div class="quick-selector" id="quickSelector"></div>
+          </div>
+        </div>
+
+        <!-- 右側：12 項能力雷達圖與數值一覽 -->
+        <div class="detail-right">
+          <div class="radar-container">
+            <canvas id="playerRadarChart"></canvas>
+          </div>
+          <div class="stat-badges-grid" id="statBadgesGrid"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 隊內紅白戰 VS 彈窗 -->
+  <div class="vs-modal" id="vsModal">
+    <div class="vs-card-modal">
+      <button class="vs-modal-close" onclick="closeVsModal()">✕</button>
+      <h2 style="text-align: center; color: var(--accent-gold); font-size: 1.6rem; letter-spacing: 2px;">
+        ⚔️ 隊內紅白戰・巔峰對決
+      </h2>
+      <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">
+        MSBY 黑色狐狼成年職業數據・滿分 10 分制對比 (1~10)
+      </p>
+
+      <div class="vs-picker-bar">
+        <select class="vs-select" id="player1Select" onchange="updateVsChart()"></select>
+        <span style="font-weight: 900; font-size: 1.3rem; color: #fff; font-style: italic;">VS</span>
+        <select class="vs-select p2" id="player2Select" onchange="updateVsChart()"></select>
+      </div>
+
+      <div class="vs-compare-layout">
+        <div style="position: relative; max-width: 440px; margin: 0 auto; width: 100%;">
+          <canvas id="vsRadarChart"></canvas>
+        </div>
+        <div>
+          <table class="vs-table">
+            <thead>
+              <tr>
+                <th id="p1HeaderName" style="color: var(--accent-gold);">選手 1</th>
+                <th>能力維度 (全10分制)</th>
+                <th id="p2HeaderName" style="color: var(--accent-red);">選手 2</th>
+              </tr>
+            </thead>
+            <tbody id="vsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 12 項排球能力指標
+    const STAT_LABELS = ['力量', '彈性', '爆發力', '頭腦', '技術', '速度', '發球', '接球', '救球', '舉球', '扣球', '攔網'];
+
+    // 各角色專屬象徵特徵向量符號（太陽&飛翔、貓頭鷹利爪眼眸、狐狼雙狐電弧、雙痣與極限手腕迴旋）
+    const SYMBOLIC_SVGS = {
+      hinata: `
+        <svg class="symbolic-emblem-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 耀日烈焰外光環 (日向的日・強烈陽光) -->
+          <circle cx="100" cy="100" r="42" fill="url(#hinataGrad)" stroke="#f5c518" stroke-width="3"/>
+          <g stroke="#f5c518" stroke-width="2.5" stroke-linecap="round">
+            <line x1="100" y1="20" x2="100" y2="44"/>
+            <line x1="100" y1="156" x2="100" y2="180"/>
+            <line x1="20" y1="100" x2="44" y2="100"/>
+            <line x1="156" y1="100" x2="180" y2="100"/>
+            <line x1="43" y1="43" x2="60" y2="60"/>
+            <line x1="140" y1="140" x2="157" y2="157"/>
+            <line x1="43" y1="157" x2="60" y2="140"/>
+            <line x1="140" y1="60" x2="157" y2="43"/>
+          </g>
+          <!-- 烏野黑色羽翼昇華為金色翔空之翼 (飛翔・忍者最強誘餌) -->
+          <path d="M48 100 C 68 76, 92 84, 100 95 C 108 84, 132 76, 152 100 C 130 114, 114 102, 100 114 C 86 102, 70 114, 48 100 Z" fill="#18191e" stroke="#fff" stroke-width="2.2"/>
+          <!-- 排球弧線核心 -->
+          <path d="M85 88 Q 100 98 115 88" stroke="#f5c518" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="10" fill="#f5c518"/>
+          <defs>
+            <radialGradient id="hinataGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ff9800"/>
+              <stop offset="100%" stop-color="#221908"/>
+            </radialGradient>
+          </defs>
+        </svg>
+      `,
+      bokuto: `
+        <svg class="symbolic-emblem-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 梟谷王牌貓頭鷹輪廓與銳角斜線 -->
+          <polygon points="100,28 152,72 135,165 65,165 48,72" fill="#18191e" stroke="#f5c518" stroke-width="3"/>
+          <!-- 貓頭鷹耳羽 (木兔招牌豎髮) -->
+          <path d="M60 70 L 40 30 L 78 54" fill="#f5c518" opacity="0.9"/>
+          <path d="M140 70 L 160 30 L 122 54" fill="#f5c518" opacity="0.9"/>
+          <!-- 銳角金色雙眼 (鎖定直線與斜線的專注金眸) -->
+          <circle cx="78" cy="98" r="14" fill="#f5c518"/>
+          <circle cx="122" cy="98" r="14" fill="#f5c518"/>
+          <circle cx="78" cy="98" r="6" fill="#000"/>
+          <circle cx="122" cy="98" r="6" fill="#000"/>
+          <!-- 銳角喙與木兔光波斜線切線 -->
+          <polygon points="100,105 92,122 108,122" fill="#fff"/>
+          <path d="M40 150 L 160 150" stroke="#f5c518" stroke-dasharray="6,4" stroke-width="2"/>
+          <path d="M30 178 L 170 120" stroke="#f43f5e" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      `,
+      miya: `
+        <svg class="symbolic-emblem-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 稻荷崎雙狐 / 黑色狐狼野性狐面輪廓 -->
+          <path d="M100 45 L 148 78 L 140 148 L 100 175 L 60 148 L 52 78 Z" fill="#18191e" stroke="#f5c518" stroke-width="3"/>
+          <!-- 敏銳狐耳 -->
+          <polygon points="62,80 40,32 82,56" fill="#f5c518" opacity="0.85"/>
+          <polygon points="138,80 160,32 118,56" fill="#f5c518" opacity="0.85"/>
+          <!-- 三刀流發球・三重電光破空 (跳發、跳飄、超混和) -->
+          <path d="M72 82 L 128 82" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M100 88 L 86 112 L 104 112 L 92 140" stroke="#f5c518" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M70 124 Q 100 110 130 124" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
+          <!-- 舉球員掌控球心之印 -->
+          <circle cx="100" cy="154" r="5" fill="#f43f5e"/>
+        </svg>
+      `,
+      sakusa: `
+        <svg class="symbolic-emblem-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 潔癖標誌口罩與幾何防禦盾陣 -->
+          <rect x="52" y="94" width="96" height="58" rx="14" fill="#18191e" stroke="#fff" stroke-width="2.5"/>
+          <!-- 佐久早招牌特徵：右上額頭雙痣 -->
+          <circle cx="122" cy="58" r="4" fill="#f5c518"/>
+          <circle cx="134" cy="64" r="4" fill="#f5c518"/>
+          <!-- 捲髮弧度 -->
+          <path d="M60 76 Q 72 44 95 62 Q 115 38 138 52" stroke="#f5c518" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- 手腕極限旋轉旋渦 (Extreme Wrist Rotation Vortex) -->
+          <path d="M100 123 m -24, 0 a 24,24 0 1,1 48,0 a 24,24 0 1,1 -48,0" stroke="#f5c518" stroke-width="2" stroke-dasharray="5,3" fill="none"/>
+          <path d="M100 123 m -14, 0 a 14,14 0 1,1 28,0 a 14,14 0 1,1 -28,0" stroke="#f43f5e" stroke-width="2.5" fill="none"/>
+          <circle cx="100" cy="123" r="5" fill="#fff"/>
+        </svg>
+      `
+    };
+
+    // 官方四位核心球員數據（全 MSBY 2018 年成年職排數據，滿分 10 分制）
+    const PLAYERS = [
+      {
+        id: "hinata",
+        nameZh: "日向 翔陽",
+        nameJp: "HINATA SHOYO",
+        number: "#21",
+        position: "OP (接應)",
+        height: "172.2 cm",
+        weight: "70.1 kg",
+        skill: "最強誘餌",
+        symbolTitle: "陽光・黑羽翔空",
+        symbolDesc: "沙排淬鍊・全方位空戰誘餌",
+        image: "image_4.png",
+        stats: [6, 8, 8, 8, 8, 10, 8, 9, 10, 8, 8, 7]
+      },
+      {
+        id: "bokuto",
+        nameZh: "木兔 光太郎",
+        nameJp: "BOKUTO KOTARO",
+        number: "#12",
+        position: "OH (主攻手)",
+        height: "190.3 cm",
+        weight: "87.4 kg",
+        skill: "超銳角斜線扣球",
+        symbolTitle: "金眸・角梟之翼",
+        symbolDesc: "單純的主攻手・木兔光波",
+        image: "image_2.png",
+        stats: [10, 8, 10, 6, 8, 8, 9, 9, 8, 5, 10, 8]
+      },
+      {
+        id: "miya",
+        nameZh: "宮 侑",
+        nameJp: "MIYA ATSUMU",
+        number: "#13",
+        position: "S (舉球員)",
+        height: "187.7 cm",
+        weight: "80.4 kg",
+        skill: "三刀流發球",
+        symbolTitle: "雙狐・三重電弧",
+        symbolDesc: "球場指揮官・三刀流發球",
+        image: "image_5.png",
+        stats: [8, 8, 8, 8, 10, 8, 10, 8, 8, 10, 8, 7]
+      },
+      {
+        id: "sakusa",
+        nameZh: "佐久早 聖臣",
+        nameJp: "SAKUSA KIYOOMI",
+        number: "#15",
+        position: "OH (主攻手)",
+        height: "192.3 cm",
+        weight: "80.2 kg",
+        skill: "手腕極限旋轉",
+        symbolTitle: "雙痣・極限迴旋",
+        symbolDesc: "深黑捲髮・無懈可擊之盾",
+        image: "image.png",
+        stats: [8, 8, 8, 8, 10, 8, 9, 10, 8, 8, 10, 8]
+      }
+    ];
+
+    let singleChartInstance = null;
+    let vsChartInstance = null;
+
+    // 產生專屬符號徽章 HTML
+    function getSymbolicHtml(player) {
+      return `
+        <div class="symbolic-emblem-wrap">
+          ${SYMBOLIC_SVGS[player.id]}
+          <div class="symbol-title-tag">${player.symbolTitle}</div>
+          <div class="symbol-desc">${player.symbolDesc}</div>
+        </div>
+      `;
+    }
+
+    // 渲染首頁球員卡片
+    function renderGridView() {
+      const grid = document.getElementById('gridView');
+      grid.innerHTML = PLAYERS.map((p, index) => `
+        <div class="player-card" onclick="openDetail(${index})">
+          <div class="card-img-wrap" id="cardImgWrap_${p.id}">
+            <span class="card-watermark">${p.number}</span>
+            <img src="${p.image}" class="card-photo" alt="${p.nameZh}" 
+              onerror="this.style.display='none'; document.getElementById('symbolWrap_${p.id}').style.display='flex';">
+            <div id="symbolWrap_${p.id}" style="display:none; width:100%; height:100%;">
+              ${getSymbolicHtml(p)}
+            </div>
+          </div>
+          <div class="card-info">
+            <div class="card-meta">
+              <span class="player-no">${p.number}</span>
+              <span class="player-pos-badge">${p.position.split(' ')[0]}</span>
+            </div>
+            <div class="player-name-zh">${p.nameZh}</div>
+            <div class="player-name-jp">${p.nameJp}</div>
+            <div class="skill-tag">
+              <span>招式</span> ${p.skill}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 展開單人能力與雷達圖
+    function openDetail(index) {
+      const p = PLAYERS[index];
+      document.getElementById('gridView').style.display = 'none';
+      const detailView = document.getElementById('detailView');
+      detailView.classList.add('active');
+
+      document.getElementById('detailName').innerText = p.nameZh;
+      document.getElementById('detailNoPos').innerText = `${p.number} | ${p.position}`;
+      document.getElementById('detailSize').innerText = `身材：${p.height} / ${p.weight}`;
+      document.getElementById('detailSkill').innerHTML = `<span>核心招式</span> ${p.skill}`;
+      
+      // 詳情左側圖片容錯：若提供圖片載入失敗，直接展示專屬象徵符號徽章
+      document.getElementById('detailImgBox').innerHTML = `
+        <span class="card-watermark" style="font-size: 10rem; right: 10px;">${p.number}</span>
+        <img src="${p.image}" class="detail-photo" alt="${p.nameZh}" 
+          onerror="this.style.display='none'; document.getElementById('detailSymbolWrap').style.display='flex';">
+        <div id="detailSymbolWrap" style="display:none; width:100%; height:100%;">
+          ${getSymbolicHtml(p)}
+        </div>
+      `;
+
+      // 隊友快速切換按鈕
+      const selector = document.getElementById('quickSelector');
+      selector.innerHTML = PLAYERS.map((item, idx) => `
+        <button class="quick-btn ${idx === index ? 'active' : ''}" onclick="openDetail(${idx})">
+          ${item.nameZh.split(' ')[0]}
+        </button>
+      `).join('');
+
+      // 渲染 12 項數值徽章
+      const statBadges = document.getElementById('statBadgesGrid');
+      statBadges.innerHTML = STAT_LABELS.map((label, i) => `
+        <div class="stat-badge">
+          <div class="stat-badge-title">${label}</div>
+          <div class="stat-badge-num">${p.stats[i]}</div>
+        </div>
+      `).join('');
+
+      renderSingleRadar(p);
+    }
+
+    function closeDetail() {
+      document.getElementById('detailView').classList.remove('active');
+      document.getElementById('gridView').style.display = 'grid';
+    }
+
+    // 繪製單人雷達圖
+    function renderSingleRadar(player) {
+      const ctx = document.getElementById('playerRadarChart').getContext('2d');
+      if (singleChartInstance) singleChartInstance.destroy();
+
+      singleChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: STAT_LABELS,
+          datasets: [{
+            label: `${player.nameZh} 能力值`,
+            data: player.stats,
+            backgroundColor: 'rgba(245, 197, 24, 0.28)',
+            borderColor: '#f5c518',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#f5c518',
+            pointBorderColor: '#fff',
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              min: 0,
+              max: 10,
+              ticks: { stepSize: 2, display: false },
+              angleLines: { color: 'rgba(255, 255, 255, 0.12)' },
+              grid: { color: 'rgba(255, 255, 255, 0.08)' },
+              pointLabels: {
+                color: '#e2e8f0',
+                font: { size: 12, weight: 'bold' }
+              }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#18191e',
+              borderColor: 'rgba(245, 197, 24, 0.4)',
+              borderWidth: 1,
+              callbacks: {
+                label: (ctx) => ` 數值：${ctx.raw} / 10`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 對比模式初始化
+    function initVsSelectors() {
+      const p1Select = document.getElementById('player1Select');
+      const p2Select = document.getElementById('player2Select');
+
+      const options = PLAYERS.map((p, idx) => `<option value="${idx}">${p.number} ${p.nameZh}</option>`).join('');
+      p1Select.innerHTML = options;
+      p2Select.innerHTML = options;
+
+      p1Select.selectedIndex = 0; // 日向
+      p2Select.selectedIndex = 1; // 木兔
+    }
+
+    function openVsModal() {
+      document.getElementById('vsModal').classList.add('active');
+      updateVsChart();
+    }
+
+    function closeVsModal() {
+      document.getElementById('vsModal').classList.remove('active');
+    }
+
+    function updateVsChart() {
+      const p1Idx = document.getElementById('player1Select').value;
+      const p2Idx = document.getElementById('player2Select').value;
+      const p1 = PLAYERS[p1Idx];
+      const p2 = PLAYERS[p2Idx];
+
+      document.getElementById('p1HeaderName').innerText = `${p1.number} ${p1.nameZh}`;
+      document.getElementById('p2HeaderName').innerText = `${p2.number} ${p2.nameZh}`;
+
+      // 12 項表格數值對決高亮
+      const tbody = document.getElementById('vsTableBody');
+      tbody.innerHTML = STAT_LABELS.map((label, i) => {
+        const v1 = p1.stats[i];
+        const v2 = p2.stats[i];
+        const p1Win = v1 > v2 ? 'val-win' : '';
+        const p2Win = v2 > v1 ? 'val-win' : '';
+        return `
+          <tr>
+            <td class="p1-val ${p1Win}">${v1}</td>
+            <td style="color: #cbd5e1;">${label}</td>
+            <td class="p2-val ${p2Win}">${v2}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // 雙人重疊雷達圖
+      const ctx = document.getElementById('vsRadarChart').getContext('2d');
+      if (vsChartInstance) vsChartInstance.destroy();
+
+      vsChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: STAT_LABELS,
+          datasets: [
+            {
+              label: p1.nameZh,
+              data: p1.stats,
+              backgroundColor: 'rgba(245, 197, 24, 0.25)',
+              borderColor: '#f5c518',
+              borderWidth: 2,
+              pointBackgroundColor: '#f5c518',
+              pointRadius: 3
+            },
+            {
+              label: p2.nameZh,
+              data: p2.stats,
+              backgroundColor: 'rgba(244, 63, 94, 0.25)',
+              borderColor: '#f43f5e',
+              borderWidth: 2,
+              pointBackgroundColor: '#f43f5e',
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              min: 0,
+              max: 10,
+              ticks: { stepSize: 2, display: false },
+              angleLines: { color: 'rgba(255, 255, 255, 0.12)' },
+              grid: { color: 'rgba(255, 255, 255, 0.08)' },
+              pointLabels: {
+                color: '#e2e8f0',
+                font: { size: 11, weight: 'bold' }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#ffffff', font: { weight: 'bold' } }
+            }
+          }
+        }
+      });
+    }
+
+    // 視窗加載後初始化
+    window.onload = function () {
+      renderGridView();
+      initVsSelectors();
+    };
+  </script>
+</body>
+</html>
